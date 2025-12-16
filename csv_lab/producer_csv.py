@@ -1,25 +1,17 @@
-from kafka import KafkaProducer
+import csv
 import time
+from kafka import KafkaProducer
 
-TOPIC = "csv-transactions"
+producer = KafkaProducer(bootstrap_servers='localhost:9092', value_serializer=lambda v: v.encode('utf-8'))
 
-producer = KafkaProducer(
-    bootstrap_servers='127.0.0.1:9092'
-,  
-    value_serializer=lambda v: str(v).encode('utf-8')
-)
-
-print("Starting CLEAN CSV Producer...")
-
-with open("data/transactions.csv", "r") as f:
-    header = f.readline()  # skip header
-    for line in f:
-        line = line.strip()
+with open('data/transactions_dirty.csv', newline='') as csvfile:
+    reader = csv.reader(csvfile)
+    next(reader)  # skip header
+    for row in reader:
+        line = ','.join(row)
         print(f"Producing: {line}")
-        producer.send(TOPIC, value=line)
-        time.sleep(1)  # simulate streaming
+        producer.send('csv-transactions', value=line)
+        time.sleep(0.5)
 
 producer.flush()
-producer.close()
-
-print("Producer finished.")
+print("Finished sending dirty CSV")
